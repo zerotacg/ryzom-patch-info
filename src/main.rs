@@ -48,6 +48,7 @@ type Arg = u32;
 
 fn read_index_file(string: String) -> Result<(), InvalidHeaderError> {
     let mut file = File::open(string).map_err(|_| InvalidHeaderError {})?;
+    let file_size = file.metadata().map_err(|_| InvalidHeaderError {})?.len() as u32;
     validate_header(&mut file)?;
 
     let version: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
@@ -58,17 +59,28 @@ fn read_index_file(string: String) -> Result<(), InvalidHeaderError> {
     }
 
     let total_size: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
-    // error if total_size!=fileSize
-    let token_count: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
-    let arg_count: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
-    let string_count: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
-    let strings_size: u32 = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
-    // error if  total_size!=offset+tokenCount*sizeof(TToken)+argCount*sizeof(uint32)+stringsSize,"PDR ERROR: Invalid source data",clear();return false);
+    if total_size > file_size {
+        return Err(InvalidHeaderError {});
+    }
+    let token_count = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
+    let arg_count = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
+    let string_count = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
+    let strings_size = read_u32(&mut file).map_err(|_| InvalidHeaderError {})?;
     println!("total_size: {}", total_size);
     println!("token_count: {}", token_count);
     println!("arg_count: {}", arg_count);
     println!("string_count: {}", string_count);
     println!("strings_size: {}", strings_size);
+
+    let offset = file.stream_position().unwrap();
+    if total_size as usize
+        != offset as usize
+            + token_count as usize * size_of::<Token>()
+            + arg_count as usize * size_of::<Arg>()
+            + strings_size as usize
+    {
+        return Err(InvalidHeaderError {});
+    }
 
     Ok(())
 }
@@ -86,7 +98,7 @@ fn validate_header(file: &mut File) -> Result<(), InvalidHeaderError> {
 }
 
 fn is_valid(file: &mut File) -> io::Result<bool> {
-    let expected_size = file.metadata().unwrap().len() as u32;
+    let expected_size = file.metadata()?.len() as u32;
     let is_valid = expected_size > 24;
     let actual_size = read_file_size(file)?;
     file.seek(SeekFrom::Start(0))?;
