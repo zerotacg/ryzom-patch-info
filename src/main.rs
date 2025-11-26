@@ -46,11 +46,13 @@ fn read_index_file(filepath: String) -> Result<pd::Header> {
     for _ in 0..header.token_count {
         tokens.push(read_u16(&mut reader)?);
     }
+    println!("Read tokens {:?}!", tokens);
 
     let mut args: Vec<Arg> = Vec::with_capacity(header.arg_count as usize);
     for _ in 0..header.arg_count {
         args.push(read_u32(&mut reader)?);
     }
+    println!("Read args {:?}!", args);
 
     let mut strings: Vec<String> = Vec::with_capacity(header.string_count as usize);
     for _ in 0..header.string_count {
