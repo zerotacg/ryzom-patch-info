@@ -1,7 +1,9 @@
 mod error;
+mod patch;
 mod pd;
 
 use clap::Parser;
+use enum_ordinalize::Ordinalize;
 use error::ReadingError;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Seek};
@@ -23,17 +25,18 @@ fn main() -> Result<()> {
 
     let string = args.index_file;
 
-    let header = read_index_file(string)?;
-
-    println!("Read header {:?}!", header);
+    let mut pdr = read_index_file(string)?;
+    println!("Read pdr {:?}!", pdr);
+    //patch::CProductDescriptionForClient::from(&mut pdr);
+    while pdr._TokenOffset < pdr.tokens.len() && pdr._TokenOffset < 30 {
+        let (token, token_value) = pdr.read_token();
+        println!("TokenType {:?} {:?}", token, token_value);
+    }
 
     Ok(())
 }
 
-type Token = u16;
-type Arg = u32;
-
-fn read_index_file(filepath: String) -> Result<pd::Header> {
+fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
     let file = File::open(filepath)?;
     let file_size = file.metadata()?.len();
     if file_size < 24 {
@@ -42,25 +45,30 @@ fn read_index_file(filepath: String) -> Result<pd::Header> {
     let mut reader = BufReader::new(file);
 
     let header = read_header(file_size, &mut reader)?;
-    let mut tokens: Vec<Token> = Vec::with_capacity(header.token_count as usize);
+    let mut tokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
+    println!("Read header {:?}!", header);
+
     for _ in 0..header.token_count {
         tokens.push(read_u16(&mut reader)?);
     }
-    println!("Read tokens {:?}!", tokens);
 
-    let mut args: Vec<Arg> = Vec::with_capacity(header.arg_count as usize);
+    let mut args: Vec<pd::Arg> = Vec::with_capacity(header.arg_count as usize);
     for _ in 0..header.arg_count {
         args.push(read_u32(&mut reader)?);
     }
-    println!("Read args {:?}!", args);
 
     let mut strings: Vec<String> = Vec::with_capacity(header.string_count as usize);
     for _ in 0..header.string_count {
         strings.push(read_string(&mut reader)?);
     }
-    println!("Read strings {:?}!", strings);
 
-    Ok(header)
+    Ok(pd::PersistentDataRecord {
+        _TokenOffset: 0,
+        _ArgOffset: 0,
+        tokens,
+        args,
+        strings,
+    })
 }
 
 fn read_header<Stream>(size: u64, mut file: &mut Stream) -> Result<pd::Header>
@@ -83,8 +91,8 @@ where
 
     let offset = file.stream_position()?;
     let expected_size = offset as usize
-        + token_count as usize * size_of::<Token>()
-        + arg_count as usize * size_of::<Arg>()
+        + token_count as usize * size_of::<pd::Token>()
+        + arg_count as usize * size_of::<pd::Arg>()
         + strings_size as usize;
     if total_size as usize != expected_size {
         return Err(ReadingError::ContentWrongSize(total_size, expected_size));
