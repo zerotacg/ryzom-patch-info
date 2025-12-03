@@ -12,13 +12,7 @@ impl CProductDescriptionForClient {
         //let categories: CBNPCategorySet = pdr.read_struct("_Categories");
         CProductDescriptionForClient {
             _Files: files,
-            _Categories: CBNPCategorySet {
-                _Category: CBNPCategory {
-                    _Name: "".to_string(),
-                    _IsOptional: 0,
-                    _Files: "".to_string(),
-                },
-            },
+            _Categories: CBNPCategorySet { _Category: vec![] },
         }
     }
 }
@@ -38,13 +32,13 @@ impl pd::Readable for CBNPFileSet {
 
 #[derive(Debug)]
 pub struct CBNPCategorySet {
-    pub _Category: CBNPCategory,
+    pub _Category: Vec<CBNPCategory>,
 }
 
 impl pd::Readable for CBNPCategorySet {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategorySet {
         CBNPCategorySet {
-            _Category: pdr.read_struct("_Category"),
+            _Category: pdr.read_struct_vec("_Category"),
         }
     }
 }
@@ -53,7 +47,7 @@ impl pd::Readable for CBNPCategorySet {
 pub struct CBNPCategory {
     pub _Name: String,
     pub _IsOptional: i32,
-    pub _Files: String,
+    pub _Files: Vec<String>,
 }
 
 impl pd::Readable for CBNPCategory {
@@ -61,7 +55,7 @@ impl pd::Readable for CBNPCategory {
         CBNPCategory {
             _Name: pdr.read_prop("_Name"),
             _IsOptional: pdr.read_prop("_IsOptional"),
-            _Files: pdr.read_prop("_Files"),
+            _Files: pdr.read_prop_vec("_Files"),
         }
     }
 }
