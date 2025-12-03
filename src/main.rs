@@ -2,6 +2,7 @@ mod error;
 mod patch;
 mod pd;
 
+use crate::pd::{Token, Tokens};
 use clap::Parser;
 use enum_ordinalize::Ordinalize;
 use error::ReadingError;
@@ -45,11 +46,11 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
     let mut reader = BufReader::new(file);
 
     let header = read_header(file_size, &mut reader)?;
-    let mut tokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
+    let mut tokens: Vec<pd::Tokens> = Vec::with_capacity(header.token_count as usize);
     println!("Read header {:?}!", header);
 
     for _ in 0..header.token_count {
-        tokens.push(read_u16(&mut reader)?);
+        tokens.push(parse_token(read_u16(&mut reader)?));
     }
 
     let mut args: Vec<pd::Arg> = Vec::with_capacity(header.arg_count as usize);
@@ -69,6 +70,23 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
         args,
         strings,
     })
+}
+
+fn parse_token(stored_token: Token) -> Tokens {
+    let token_type = stored_token & 0x7;
+    let token_value = stored_token >> 3;
+
+    match token_type {
+        0 => Tokens::BEGIN_TOKEN(token_value),
+        1 => Tokens::END_TOKEN(token_value),
+        2 => Tokens::SINT_TOKEN(token_value),
+        3 => Tokens::UINT_TOKEN(token_value),
+        4 => Tokens::FLOAT_TOKEN(token_value),
+        5 => Tokens::STRING_TOKEN(token_value),
+        6 => Tokens::FLAG_TOKEN(token_value),
+        7 => Tokens::EXTEND_TOKEN(token_value),
+        _ => panic!("Unknown token type"),
+    }
 }
 
 fn read_header<Stream>(size: u64, mut file: &mut Stream) -> Result<pd::Header>

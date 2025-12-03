@@ -20,13 +20,14 @@ pub struct CBNPFileSet {
 
 impl CBNPFileSet {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> Option<CBNPFileSet> {
-        let mut files: Vec<Option<CBNPFile>> = Vec::new();
+        let mut files: Vec<CBNPFile> = Vec::new();
         while pdr.has_struct(16) {
             pdr.read_struct_begin();
-            files.push(CBNPFile::from(pdr));
+            files.push(CBNPFile::from(pdr).unwrap());
             pdr.read_struct_end();
         }
-        None
+
+        Some(CBNPFileSet { _Files: files })
     }
 }
 
@@ -40,11 +41,16 @@ pub struct CBNPFile {
 impl CBNPFile {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> Option<CBNPFile> {
         let file_name = pdr.read_string();
-        let versions: Vec<CBNPFileVersion> = Vec::new();
-        pdr.read_struct_begin();
-        let version = CBNPFileVersion::from(pdr);
-        pdr.read_struct_end();
-        None
+        let mut versions: Vec<CBNPFileVersion> = Vec::new();
+        while pdr.has_struct(15) {
+            pdr.read_struct_begin();
+            versions.push(CBNPFileVersion::from(pdr));
+            pdr.read_struct_end();
+        }
+        Some(CBNPFile {
+            _FileName: file_name,
+            _Versions: versions,
+        })
     }
 }
 
