@@ -8,11 +8,8 @@ pub struct CProductDescriptionForClient {
 
 impl CProductDescriptionForClient {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CProductDescriptionForClient {
-        pdr.read_struct_begin();
-        let files = CBNPFileSet::from(pdr);
-        // pdr.read_struct_end();
         CProductDescriptionForClient {
-            _Files: files,
+            _Files: pdr.read_struct("_Files"),
             _Categories: CBNPCategorySet {},
         }
     }
@@ -23,13 +20,13 @@ pub struct CBNPFileSet {
     pub _Files: Vec<CBNPFile>, // read_struct_vec
 }
 
-impl CBNPFileSet {
-    pub fn from(pdr: &mut pd::PersistentDataRecord) -> CBNPFileSet {
+impl pd::Readable for CBNPFileSet {
+    fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileSet {
         let mut files: Vec<CBNPFile> = Vec::new();
         while pdr.has_named_struct("_Files") {
-            pdr.read_struct_begin();
+            pdr.read_struct_begin("_Files");
             files.push(CBNPFile::from(pdr));
-            pdr.read_struct_end();
+            pdr.read_struct_end("_Files");
         }
 
         CBNPFileSet { _Files: files }
@@ -47,16 +44,9 @@ pub struct CBNPFile {
 
 impl CBNPFile {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CBNPFile {
-        let file_name = pdr.read_string();
-        let mut versions: Vec<CBNPFileVersion> = Vec::new();
-        while pdr.has_named_struct("_Versions") {
-            pdr.read_struct_begin();
-            versions.push(CBNPFileVersion::from(pdr));
-            pdr.read_struct_end();
-        }
         CBNPFile {
-            _FileName: file_name,
-            _Versions: versions,
+            _FileName: pdr.read_string("_FileName"),
+            _Versions: pdr.read_struct_vec("_Versions"),
         }
     }
 }
@@ -71,20 +61,20 @@ pub struct CBNPFileVersion {
     pub _HashKey: Vec<u32>, // read_prop_vec
 }
 
-impl CBNPFileVersion {
-    pub fn from(pdr: &mut pd::PersistentDataRecord) -> CBNPFileVersion {
+impl pd::Readable for CBNPFileVersion {
+    fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileVersion {
         CBNPFileVersion {
-            _VersionNumber: pdr.read_u32(),
-            _FileSize: pdr.read_u32(),
-            _7ZFileSize: pdr.read_u32(),
-            _FileTime: pdr.read_u32(),
-            _PatchSize: pdr.read_u32(),
+            _VersionNumber: pdr.read_u32("_VersionNumber"),
+            _FileSize: pdr.read_u32("_FileSize"),
+            _7ZFileSize: pdr.read_u32("_7ZFileSize"),
+            _FileTime: pdr.read_u32("_FileTime"),
+            _PatchSize: pdr.read_u32("_PatchSize"),
             _HashKey: vec![
-                pdr.read_u32(),
-                pdr.read_u32(),
-                pdr.read_u32(),
-                pdr.read_u32(),
-                pdr.read_u32(),
+                pdr.read_u32("_HashKey"),
+                pdr.read_u32("_HashKey"),
+                pdr.read_u32("_HashKey"),
+                pdr.read_u32("_HashKey"),
+                pdr.read_u32("_HashKey"),
             ], // read_prop_vec
         }
     }
