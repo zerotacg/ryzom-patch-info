@@ -3,8 +3,21 @@ use crate::pd;
 pub type Token = u16;
 pub type Arg = u32;
 
-pub trait Readable: Sized {
+pub trait Readable {
     fn read(pdr: &mut PersistentDataRecord) -> Self;
+}
+
+pub trait ReadableProperty {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self;
+}
+
+impl ReadableProperty for u32 {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        pdr.expect_token(name, pd::TType::UINT32);
+        let arg = pdr.pop_arg();
+
+        arg
+    }
 }
 
 #[derive(Debug)]
@@ -50,11 +63,13 @@ impl PersistentDataRecord {
         token
     }
 
-    fn has_struct(&self, name: &str) -> bool {
-        let token = self.find_token(name);
+    fn has_property(&self, name: &str) -> bool {
+        self.find_token(name) == self.peek_token().value()
+    }
 
-        if let pd::Tokens::BEGIN_TOKEN(token_value) = self.peek_token() {
-            token == token_value
+    fn has_begin(&self, name: &str) -> bool {
+        if let pd::Tokens::BEGIN_TOKEN(_) = self.peek_token() {
+            self.has_property(name)
         } else {
             false
         }
@@ -74,6 +89,10 @@ impl PersistentDataRecord {
 
     fn read_struct_end(&mut self, name: &str) {
         self.expect_token(name, pd::TType::STRUCT_END);
+    }
+
+    pub fn read_prop<T: ReadableProperty>(&mut self, name: &str) -> T {
+        T::read(self, name)
     }
 
     pub fn read_u32(&mut self, name: &str) -> u32 {
@@ -121,8 +140,17 @@ impl PersistentDataRecord {
 
     pub fn read_struct_vec<T: Readable>(&mut self, name: &str) -> Vec<T> {
         let mut items: Vec<T> = Vec::new();
-        while self.has_struct(name) {
+        while self.has_begin(name) {
             items.push(self.read_struct::<T>(name));
+        }
+
+        items
+    }
+
+    pub fn read_prop_vec<T: ReadableProperty>(&mut self, name: &str) -> Vec<T> {
+        let mut items: Vec<T> = Vec::new();
+        while self.has_property(name) {
+            items.push(self.read_prop(name));
         }
 
         items

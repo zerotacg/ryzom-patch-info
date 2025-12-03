@@ -94,11 +94,11 @@ pub struct CBNPFileVersion {
 impl pd::Readable for CBNPFileVersion {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileVersion {
         CBNPFileVersion {
-            _VersionNumber: pdr.read_u32("_VersionNumber"),
-            _FileSize: pdr.read_u32("_FileSize"),
-            _7ZFileSize: pdr.read_u32("_7ZFileSize"),
-            _FileTime: pdr.read_u32("_FileTime"),
-            _PatchSize: pdr.read_u32("_PatchSize"),
+            _VersionNumber: pdr.read_prop("_VersionNumber"),
+            _FileSize: pdr.read_prop("_FileSize"),
+            _7ZFileSize: pdr.read_prop("_7ZFileSize"),
+            _FileTime: pdr.read_prop("_FileTime"),
+            _PatchSize: pdr.read_prop("_PatchSize"),
             _HashKey: vec![
                 pdr.read_u32("_HashKey"),
                 pdr.read_u32("_HashKey"),
