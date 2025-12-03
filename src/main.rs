@@ -28,11 +28,8 @@ fn main() -> Result<()> {
 
     let mut pdr = read_index_file(string)?;
     println!("Read pdr {:?}!", pdr);
-    //patch::CProductDescriptionForClient::from(&mut pdr);
-    while pdr._TokenOffset < pdr.tokens.len() && pdr._TokenOffset < 30 {
-        let (token, token_value) = pdr.read_token();
-        println!("TokenType {:?} {:?}", token, token_value);
-    }
+    let patch = patch::CProductDescriptionForClient::from(&mut pdr);
+    println!("Parsed patch {:?}!", patch);
 
     Ok(())
 }

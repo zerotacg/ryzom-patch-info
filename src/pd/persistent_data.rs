@@ -36,7 +36,7 @@ impl PersistentDataRecord {
         if let pd::Tokens::BEGIN_TOKEN(token_value) = self.peek_token() {
             token == token_value
         } else {
-            panic!("Expected struct begin token");
+            false
         }
     }
 
