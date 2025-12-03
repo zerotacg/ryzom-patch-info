@@ -8,9 +8,17 @@ pub struct CProductDescriptionForClient {
 
 impl CProductDescriptionForClient {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CProductDescriptionForClient {
+        let files: CBNPFileSet = pdr.read_struct("_Files");
+        //let categories: CBNPCategorySet = pdr.read_struct("_Categories");
         CProductDescriptionForClient {
-            _Files: pdr.read_struct("_Files"),
-            _Categories: CBNPCategorySet {},
+            _Files: files,
+            _Categories: CBNPCategorySet {
+                _Category: CBNPCategory {
+                    _Name: "".to_string(),
+                    _IsOptional: 0,
+                    _Files: "".to_string(),
+                },
+            },
         }
     }
 }
@@ -22,19 +30,41 @@ pub struct CBNPFileSet {
 
 impl pd::Readable for CBNPFileSet {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileSet {
-        let mut files: Vec<CBNPFile> = Vec::new();
-        while pdr.has_named_struct("_Files") {
-            pdr.read_struct_begin("_Files");
-            files.push(CBNPFile::from(pdr));
-            pdr.read_struct_end("_Files");
+        CBNPFileSet {
+            _Files: pdr.read_struct_vec("_Files"),
         }
-
-        CBNPFileSet { _Files: files }
     }
 }
 
 #[derive(Debug)]
-pub struct CBNPCategorySet {}
+pub struct CBNPCategorySet {
+    pub _Category: CBNPCategory,
+}
+
+impl pd::Readable for CBNPCategorySet {
+    fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategorySet {
+        CBNPCategorySet {
+            _Category: pdr.read_struct("_Category"),
+        }
+    }
+}
+
+#[derive(Debug)]
+pub struct CBNPCategory {
+    pub _Name: String,
+    pub _IsOptional: i32,
+    pub _Files: String,
+}
+
+impl pd::Readable for CBNPCategory {
+    fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategory {
+        CBNPCategory {
+            _Name: pdr.read_string("_Name"),
+            _IsOptional: pdr.read_i32("_IsOptional"),
+            _Files: pdr.read_string("_Files"),
+        }
+    }
+}
 
 #[derive(Debug)]
 pub struct CBNPFile {
@@ -42,8 +72,8 @@ pub struct CBNPFile {
     pub _Versions: Vec<CBNPFileVersion>, // read_struct_vec
 }
 
-impl CBNPFile {
-    pub fn from(pdr: &mut pd::PersistentDataRecord) -> CBNPFile {
+impl pd::Readable for CBNPFile {
+    fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFile {
         CBNPFile {
             _FileName: pdr.read_string("_FileName"),
             _Versions: pdr.read_struct_vec("_Versions"),

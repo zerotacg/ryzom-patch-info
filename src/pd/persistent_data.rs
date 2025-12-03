@@ -21,19 +21,23 @@ impl PersistentDataRecord {
         self.tokens[self._TokenOffset]
     }
 
-    pub fn read_token(&mut self, name: &str) -> (pd::TType, Token) {
-        let token = self.peek_token();
-        self._TokenOffset += 1;
+    pub fn read_token(&mut self, name: &str) -> pd::TType {
+        let token = self.pop_token(name);
 
-        if let pd::Tokens::EXTEND_TOKEN(token_value) = token {
-            self._TokenOffset += 1;
+        if let pd::Tokens::EXTEND_TOKEN(_) = token {
+            let token = self.pop_token(name);
 
-            let token_type = pd::token2Type(token, true);
-            return (token_type, token_value);
+            return pd::token2Type(token, true);
         }
 
-        let token_type = pd::token2Type(token, false);
-        if token.value() != self.find_token(name) {
+        pd::token2Type(token, false)
+    }
+
+    fn pop_token(&mut self, name: &str) -> pd::Tokens {
+        let expected_token = self.find_token(name);
+        let token = self.peek_token();
+
+        if token.value() != expected_token {
             panic!(
                 "Expected property {} but found {}",
                 name,
@@ -41,21 +45,19 @@ impl PersistentDataRecord {
             );
         }
 
-        (token_type, token.value())
+        self._TokenOffset += 1;
+
+        token
     }
 
-    pub fn has_struct(&self, token: Token) -> bool {
+    fn has_struct(&self, name: &str) -> bool {
+        let token = self.find_token(name);
+
         if let pd::Tokens::BEGIN_TOKEN(token_value) = self.peek_token() {
             token == token_value
         } else {
             false
         }
-    }
-
-    pub fn has_named_struct(&self, name: &str) -> bool {
-        let token = self.find_token(name);
-
-        self.has_struct(token)
     }
 
     fn find_token(&self, name: &str) -> Token {
@@ -66,33 +68,29 @@ impl PersistentDataRecord {
         &self.strings[token as usize]
     }
 
-    pub fn read_struct_begin(&mut self, name: &str) {
-        let expected_token = self.find_token(name);
-        let (token_type, token_value) = self.read_token(name);
-        if token_type != pd::TType::STRUCT_BEGIN {
-            panic!("Expected struct begin token");
-        }
-        if token_value != expected_token {
-            panic!(
-                "Expected property {} but found {}",
-                name,
-                self.find_name(token_value)
-            );
-        }
+    fn read_struct_begin(&mut self, name: &str) {
+        self.expect_token(name, pd::TType::STRUCT_BEGIN);
     }
 
-    pub fn read_struct_end(&mut self, name: &str) {
-        let (token, token_value) = self.read_token(name);
-        if token != pd::TType::STRUCT_END {
-            panic!("Expected struct end token");
-        }
+    fn read_struct_end(&mut self, name: &str) {
+        self.expect_token(name, pd::TType::STRUCT_END);
     }
 
     pub fn read_u32(&mut self, name: &str) -> u32 {
-        let (token_type, token_value) = self.read_token(name);
-        if token_type != pd::TType::UINT32 {
-            panic!("Expected UINT32 token");
-        }
+        self.expect_token(name, pd::TType::UINT32);
+        let arg = self.pop_arg();
+
+        arg
+    }
+
+    pub fn read_i32(&mut self, name: &str) -> i32 {
+        self.expect_token(name, pd::TType::SINT32);
+        let arg = self.pop_arg();
+
+        arg as i32
+    }
+
+    fn pop_arg(&mut self) -> Arg {
         let arg = self.args[self._ArgOffset];
         self._ArgOffset += 1;
 
@@ -100,14 +98,17 @@ impl PersistentDataRecord {
     }
 
     pub fn read_string(&mut self, name: &str) -> String {
-        let (token_type, token_value) = self.read_token(name);
-        if token_type != pd::TType::STRING {
-            panic!("Expected string token");
-        }
-        let arg = self.args[self._ArgOffset];
-        self._ArgOffset += 1;
+        self.expect_token(name, pd::TType::STRING);
+        let arg = self.pop_arg();
 
         self.strings[arg as usize].clone()
+    }
+
+    fn expect_token(&mut self, name: &str, expected: pd::TType) {
+        let token_type = self.read_token(name);
+        if token_type != expected {
+            panic!("Expected {:?} token but found {:?}", expected, token_type);
+        }
     }
 
     pub fn read_struct<T: Readable>(&mut self, name: &str) -> T {
@@ -120,7 +121,7 @@ impl PersistentDataRecord {
 
     pub fn read_struct_vec<T: Readable>(&mut self, name: &str) -> Vec<T> {
         let mut items: Vec<T> = Vec::new();
-        while self.has_named_struct(name) {
+        while self.has_struct(name) {
             items.push(self.read_struct::<T>(name));
         }
 
