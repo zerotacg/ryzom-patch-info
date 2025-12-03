@@ -59,9 +59,9 @@ pub struct CBNPCategory {
 impl pd::Readable for CBNPCategory {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategory {
         CBNPCategory {
-            _Name: pdr.read_string("_Name"),
-            _IsOptional: pdr.read_i32("_IsOptional"),
-            _Files: pdr.read_string("_Files"),
+            _Name: pdr.read_prop("_Name"),
+            _IsOptional: pdr.read_prop("_IsOptional"),
+            _Files: pdr.read_prop("_Files"),
         }
     }
 }
@@ -75,7 +75,7 @@ pub struct CBNPFile {
 impl pd::Readable for CBNPFile {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFile {
         CBNPFile {
-            _FileName: pdr.read_string("_FileName"),
+            _FileName: pdr.read_prop("_FileName"),
             _Versions: pdr.read_struct_vec("_Versions"),
         }
     }
@@ -99,13 +99,7 @@ impl pd::Readable for CBNPFileVersion {
             _7ZFileSize: pdr.read_prop("_7ZFileSize"),
             _FileTime: pdr.read_prop("_FileTime"),
             _PatchSize: pdr.read_prop("_PatchSize"),
-            _HashKey: vec![
-                pdr.read_u32("_HashKey"),
-                pdr.read_u32("_HashKey"),
-                pdr.read_u32("_HashKey"),
-                pdr.read_u32("_HashKey"),
-                pdr.read_u32("_HashKey"),
-            ], // read_prop_vec
+            _HashKey: pdr.read_prop_vec("_HashKey"), // read_prop_vec
         }
     }
 }

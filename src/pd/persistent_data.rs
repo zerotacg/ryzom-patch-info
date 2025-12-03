@@ -20,6 +20,24 @@ impl ReadableProperty for u32 {
     }
 }
 
+impl ReadableProperty for i32 {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        pdr.expect_token(name, pd::TType::SINT32);
+        let arg = pdr.pop_arg();
+
+        arg as i32
+    }
+}
+
+impl ReadableProperty for String {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        pdr.expect_token(name, pd::TType::STRING);
+        let arg = pdr.pop_arg();
+
+        pdr.strings[arg as usize].clone()
+    }
+}
+
 #[derive(Debug)]
 pub struct PersistentDataRecord {
     pub _TokenOffset: usize,
@@ -95,32 +113,11 @@ impl PersistentDataRecord {
         T::read(self, name)
     }
 
-    pub fn read_u32(&mut self, name: &str) -> u32 {
-        self.expect_token(name, pd::TType::UINT32);
-        let arg = self.pop_arg();
-
-        arg
-    }
-
-    pub fn read_i32(&mut self, name: &str) -> i32 {
-        self.expect_token(name, pd::TType::SINT32);
-        let arg = self.pop_arg();
-
-        arg as i32
-    }
-
     fn pop_arg(&mut self) -> Arg {
         let arg = self.args[self._ArgOffset];
         self._ArgOffset += 1;
 
         arg
-    }
-
-    pub fn read_string(&mut self, name: &str) -> String {
-        self.expect_token(name, pd::TType::STRING);
-        let arg = self.pop_arg();
-
-        self.strings[arg as usize].clone()
     }
 
     fn expect_token(&mut self, name: &str, expected: pd::TType) {
