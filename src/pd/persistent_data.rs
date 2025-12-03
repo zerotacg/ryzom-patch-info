@@ -40,6 +40,12 @@ impl PersistentDataRecord {
         }
     }
 
+    pub fn has_named_struct(&self, name: &str) -> bool {
+        let token = self.strings.iter().position(|it| *it == *name).unwrap();
+
+        self.has_struct(token as Token)
+    }
+
     pub fn read_struct_begin(&mut self) {
         let (token, token_value) = self.read_token();
         if token != pd::TType::STRUCT_BEGIN {
