@@ -9,8 +9,8 @@ pub struct CProductDescriptionForClient {
 impl CProductDescriptionForClient {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CProductDescriptionForClient {
         CProductDescriptionForClient {
-            _Files: pdr.read_struct("_Files"),
-            _Categories: pdr.read_struct("_Categories"),
+            _Files: pdr.read("_Files"),
+            _Categories: pdr.read("_Categories"),
         }
     }
 }
@@ -23,7 +23,7 @@ pub struct CBNPFileSet {
 impl pd::Readable for CBNPFileSet {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileSet {
         CBNPFileSet {
-            _Files: pdr.read_struct_vec("_Files"),
+            _Files: pdr.read("_Files"),
         }
     }
 }
@@ -36,7 +36,7 @@ pub struct CBNPCategorySet {
 impl pd::Readable for CBNPCategorySet {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategorySet {
         CBNPCategorySet {
-            _Category: pdr.read_struct_vec("_Category"),
+            _Category: pdr.read("_Category"),
         }
     }
 }
@@ -55,12 +55,12 @@ pub struct CBNPCategory {
 impl pd::Readable for CBNPCategory {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPCategory {
         CBNPCategory {
-            _Name: pdr.read_prop("_Name"),
-            _IsOptional: pdr.read_prop("_IsOptional"),
-            _UnpackTo: pdr.read_prop("_UnpackTo"),
-            _IsIncremental: pdr.read_prop("_IsIncremental"),
-            _CatRequired: pdr.read_prop("_CatRequired"),
-            _Hidden: pdr.read_prop("_Hidden"),
+            _Name: pdr.read("_Name"),
+            _IsOptional: pdr.read("_IsOptional"),
+            _UnpackTo: pdr.read("_UnpackTo"),
+            _IsIncremental: pdr.read("_IsIncremental"),
+            _CatRequired: pdr.read("_CatRequired"),
+            _Hidden: pdr.read("_Hidden"),
             _Files: pdr.read_prop_vec("_Files"),
         }
     }
@@ -75,8 +75,8 @@ pub struct CBNPFile {
 impl pd::Readable for CBNPFile {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFile {
         CBNPFile {
-            _FileName: pdr.read_prop("_FileName"),
-            _Versions: pdr.read_struct_vec("_Versions"),
+            _FileName: pdr.read("_FileName"),
+            _Versions: pdr.read("_Versions"),
         }
     }
 }
@@ -94,11 +94,11 @@ pub struct CBNPFileVersion {
 impl pd::Readable for CBNPFileVersion {
     fn read(pdr: &mut pd::PersistentDataRecord) -> CBNPFileVersion {
         CBNPFileVersion {
-            _VersionNumber: pdr.read_prop("_VersionNumber"),
-            _FileSize: pdr.read_prop("_FileSize"),
-            _7ZFileSize: pdr.read_prop("_7ZFileSize"),
-            _FileTime: pdr.read_prop("_FileTime"),
-            _PatchSize: pdr.read_prop("_PatchSize"),
+            _VersionNumber: pdr.read("_VersionNumber"),
+            _FileSize: pdr.read("_FileSize"),
+            _7ZFileSize: pdr.read("_7ZFileSize"),
+            _FileTime: pdr.read("_FileTime"),
+            _PatchSize: pdr.read("_PatchSize"),
             _HashKey: pdr.read_prop_vec("_HashKey"), // read_prop_vec
         }
     }

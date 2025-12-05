@@ -11,6 +11,27 @@ pub trait ReadableProperty {
     fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self;
 }
 
+impl<T: Readable> ReadableProperty for T {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        pdr.expect_token(name, pd::TType::STRUCT_BEGIN);
+        let result = T::read(pdr);
+        pdr.expect_token(name, pd::TType::STRUCT_END);
+
+        result
+    }
+}
+
+impl<T: ReadableProperty> ReadableProperty for Vec<T> {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        let mut items: Vec<T> = Vec::new();
+        while pdr.has_begin(name) {
+            items.push(pdr.read::<T>(name));
+        }
+
+        items
+    }
+}
+
 impl ReadableProperty for u32 {
     fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
         pdr.expect_token(name, pd::TType::UINT32);
@@ -67,7 +88,7 @@ pub struct PersistentDataRecord {
 }
 
 impl PersistentDataRecord {
-    pub fn peek_token(&self) -> &pd::Tokens {
+    fn peek_token(&self) -> &pd::Tokens {
         &self.tokens[self._TokenOffset]
     }
 
@@ -116,15 +137,7 @@ impl PersistentDataRecord {
         }
     }
 
-    fn read_struct_begin(&mut self, name: &str) {
-        self.expect_token(name, pd::TType::STRUCT_BEGIN);
-    }
-
-    fn read_struct_end(&mut self, name: &str) {
-        self.expect_token(name, pd::TType::STRUCT_END);
-    }
-
-    pub fn read_prop<T: ReadableProperty>(&mut self, name: &str) -> T {
+    fn read_prop<T: ReadableProperty>(&mut self, name: &str) -> T {
         T::read(self, name)
     }
 
@@ -135,21 +148,8 @@ impl PersistentDataRecord {
         arg
     }
 
-    pub fn read_struct<T: Readable>(&mut self, name: &str) -> T {
-        self.read_struct_begin(name);
-        let result = T::read(self);
-        self.read_struct_end(name);
-
-        result
-    }
-
-    pub fn read_struct_vec<T: Readable>(&mut self, name: &str) -> Vec<T> {
-        let mut items: Vec<T> = Vec::new();
-        while self.has_begin(name) {
-            items.push(self.read_struct::<T>(name));
-        }
-
-        items
+    pub fn read<T: ReadableProperty>(&mut self, name: &str) -> T {
+        T::read(self, name)
     }
 
     pub fn read_prop_vec<T: ReadableProperty>(&mut self, name: &str) -> Vec<T> {
