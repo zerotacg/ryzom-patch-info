@@ -1,9 +1,9 @@
 mod error;
+mod format;
 mod patch;
 mod pd;
 
 use clap::Parser;
-use enum_ordinalize::Ordinalize;
 use error::ReadingError;
 use std::fs::File;
 use std::io::{self, BufRead, BufReader, Read, Seek};
