@@ -46,7 +46,21 @@ pub enum TType {
     UINT64,
     FLOAT64,
     EXTEND_TYPE,
-    NB_TYPE,
+}
+
+impl TType {
+    pub fn is_extended(&self) -> bool {
+        match self {
+            TType::STRUCT_BEGIN
+            | TType::STRUCT_END
+            | TType::FLAG
+            | TType::SINT32
+            | TType::UINT32
+            | TType::FLOAT32
+            | TType::STRING => false,
+            TType::SINT64 | TType::UINT64 | TType::FLOAT64 | TType::EXTEND_TYPE => true,
+        }
+    }
 }
 
 pub fn token2Type(token: Tokens, extended: bool) -> TType {

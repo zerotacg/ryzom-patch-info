@@ -29,6 +29,15 @@ impl ReadableProperty for i32 {
     }
 }
 
+impl ReadableProperty for bool {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        pdr.expect_token(name, pd::TType::SINT32);
+        let arg = pdr.pop_arg();
+
+        arg != 0
+    }
+}
+
 impl ReadableProperty for String {
     fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
         pdr.expect_token(name, pd::TType::STRING);
