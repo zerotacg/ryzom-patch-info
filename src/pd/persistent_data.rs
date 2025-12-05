@@ -21,11 +21,11 @@ impl<T: Readable> ReadableProperty for T {
     }
 }
 
-impl<T: ReadableProperty> ReadableProperty for Vec<T> {
-    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+impl<T: Readable> ReadableProperty for Vec<T> {
+    fn read(pdr: &mut PersistentDataRecord, property: &str) -> Self {
         let mut items: Vec<T> = Vec::new();
-        while pdr.has_begin(name) {
-            items.push(pdr.read::<T>(name));
+        while pdr.has_begin(property) {
+            items.push(pdr.read::<T>(property));
         }
 
         items
@@ -70,8 +70,8 @@ impl ReadableProperty for String {
 
 impl<T: ReadableProperty> ReadableProperty for Option<T> {
     fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
-        if (pdr.has_property(name)) {
-            Some(pdr.read_prop::<T>(name))
+        if pdr.has_property(name) {
+            Some(T::read(pdr, name))
         } else {
             None
         }
@@ -129,16 +129,12 @@ impl PersistentDataRecord {
         name == self.peek_token().value()
     }
 
-    fn has_begin(&self, name: &str) -> bool {
-        if let pd::Tokens::BEGIN_TOKEN(_) = self.peek_token() {
-            self.has_property(name)
+    fn has_begin(&self, expected_name: &str) -> bool {
+        if let pd::Tokens::BEGIN_TOKEN(actual_name) = self.peek_token() {
+            expected_name == actual_name
         } else {
             false
         }
-    }
-
-    fn read_prop<T: ReadableProperty>(&mut self, name: &str) -> T {
-        T::read(self, name)
     }
 
     fn pop_arg(&mut self) -> Arg {
@@ -155,7 +151,7 @@ impl PersistentDataRecord {
     pub fn read_prop_vec<T: ReadableProperty>(&mut self, name: &str) -> Vec<T> {
         let mut items: Vec<T> = Vec::new();
         while self.has_property(name) {
-            items.push(self.read_prop(name));
+            items.push(T::read(self, name));
         }
 
         items
