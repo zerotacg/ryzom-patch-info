@@ -21,12 +21,8 @@ struct Args {
 fn main() -> Result<()> {
     let args = Args::parse();
 
-    println!("Loading file {}!", args.index_file);
+    let mut pdr = read_index_file(args.index_file)?;
 
-    let string = args.index_file;
-
-    let mut pdr = read_index_file(string)?;
-    println!("Read pdr {:?}!", pdr);
     let patch = patch::CProductDescriptionForClient::from(&mut pdr);
     println!("Parsed patch {:?}!", patch);
 
@@ -42,11 +38,11 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
     let mut reader = BufReader::new(file);
 
     let header = read_header(file_size, &mut reader)?;
-    let mut packedTokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
+    let mut packed_tokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
     println!("Read header {:?}!", header);
 
     for _ in 0..header.token_count {
-        packedTokens.push(read_u16(&mut reader)?);
+        packed_tokens.push(read_u16(&mut reader)?);
     }
 
     let mut args: Vec<pd::Arg> = Vec::with_capacity(header.arg_count as usize);
@@ -59,7 +55,7 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
         strings.push(read_string(&mut reader)?);
     }
 
-    let tokens: Vec<pd::Tokens> = packedTokens
+    let tokens: Vec<pd::Tokens> = packed_tokens
         .iter()
         .map(|&x| parse_token(x, &strings))
         .collect();
