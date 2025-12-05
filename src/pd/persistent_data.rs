@@ -47,6 +47,16 @@ impl ReadableProperty for String {
     }
 }
 
+impl<T: ReadableProperty> ReadableProperty for Option<T> {
+    fn read(pdr: &mut PersistentDataRecord, name: &str) -> Self {
+        if (pdr.has_property(name)) {
+            Some(pdr.read_prop::<T>(name))
+        } else {
+            None
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct PersistentDataRecord {
     pub _TokenOffset: usize,

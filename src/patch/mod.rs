@@ -8,11 +8,9 @@ pub struct CProductDescriptionForClient {
 
 impl CProductDescriptionForClient {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CProductDescriptionForClient {
-        let files: CBNPFileSet = pdr.read_struct("_Files");
-        //let categories: CBNPCategorySet = pdr.read_struct("_Categories");
         CProductDescriptionForClient {
-            _Files: files,
-            _Categories: CBNPCategorySet { _Category: vec![] },
+            _Files: pdr.read_struct("_Files"),
+            _Categories: pdr.read_struct("_Categories"),
         }
     }
 }
@@ -46,11 +44,11 @@ impl pd::Readable for CBNPCategorySet {
 #[derive(Debug)]
 pub struct CBNPCategory {
     pub _Name: String,
-    pub _IsOptional: bool,
-    pub _UnpackTo: String,
-    pub _IsIncremental: bool,
-    pub _CatRequired: String,
-    pub _Hidden: bool,
+    pub _IsOptional: Option<bool>,
+    pub _UnpackTo: Option<String>,
+    pub _IsIncremental: Option<bool>,
+    pub _CatRequired: Option<String>,
+    pub _Hidden: Option<bool>,
     pub _Files: Vec<String>,
 }
 
@@ -62,7 +60,7 @@ impl pd::Readable for CBNPCategory {
             _UnpackTo: pdr.read_prop("_UnpackTo"),
             _IsIncremental: pdr.read_prop("_IsIncremental"),
             _CatRequired: pdr.read_prop("_CatRequired"),
-            _Hidden: pdr.read_prop("_IsIncremental"),
+            _Hidden: pdr.read_prop("_Hidden"),
             _Files: pdr.read_prop_vec("_Files"),
         }
     }
