@@ -61,27 +61,37 @@ impl PersistentDataRecord {
         &self.tokens[self._TokenOffset]
     }
 
-    pub fn read_token(&mut self, name: &str) -> pd::TType {
-        let token = self.pop_token(name);
-        if token.value() != name {
-            panic!("Expected property {} but found {}", name, token.value());
-        }
+    fn expect_token(&mut self, name: &str, expected: pd::TType) {
+        let token = self.pop_token();
+        let token_type = pd::token2Type(&token, false);
+        let token_value = token.value();
 
         if let pd::Tokens::EXTEND_TOKEN(_) = token {
-            let token = self.pop_token(name);
-            if token.value() != name {
-                panic!("Expected property {} but found {}", name, token.value());
+            let token = self.pop_token();
+            let token_type = pd::token2Type(&token, true);
+            if token_type != expected || token.value() != name {
+                panic!(
+                    "Expected {} {:?} token but found {} {:?}",
+                    name,
+                    expected,
+                    token.value(),
+                    token_type
+                );
             }
-
-            return pd::token2Type(token, true);
+        } else if token_type != expected || token_value != name {
+            panic!(
+                "Expected {} {:?} token but found {} {:?}",
+                name, expected, token_value, token_type
+            );
         }
-
-        pd::token2Type(token, false)
     }
 
-    fn pop_token(&mut self, name: &str) -> &pd::Tokens {
+    fn pop_token(&mut self) -> pd::Tokens {
+        let value = self.peek_token().clone();
+
         self._TokenOffset += 1;
-        self.peek_token()
+
+        value
     }
 
     fn has_property(&self, name: &str) -> bool {
@@ -113,13 +123,6 @@ impl PersistentDataRecord {
         self._ArgOffset += 1;
 
         arg
-    }
-
-    fn expect_token(&mut self, name: &str, expected: pd::TType) {
-        let token_type = self.read_token(name);
-        if token_type != expected {
-            panic!("Expected {:?} token but found {:?}", expected, token_type);
-        }
     }
 
     pub fn read_struct<T: Readable>(&mut self, name: &str) -> T {

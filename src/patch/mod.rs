@@ -9,7 +9,7 @@ pub struct CProductDescriptionForClient {
 impl CProductDescriptionForClient {
     pub fn from(pdr: &mut pd::PersistentDataRecord) -> CProductDescriptionForClient {
         let files: CBNPFileSet = pdr.read_struct("_Files");
-        let categories: CBNPCategorySet = pdr.read_struct("_Categories");
+        //let categories: CBNPCategorySet = pdr.read_struct("_Categories");
         CProductDescriptionForClient {
             _Files: files,
             _Categories: CBNPCategorySet { _Category: vec![] },
