@@ -2,7 +2,6 @@ mod error;
 mod patch;
 mod pd;
 
-use crate::pd::{Token, Tokens};
 use clap::Parser;
 use enum_ordinalize::Ordinalize;
 use error::ReadingError;
@@ -43,11 +42,11 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
     let mut reader = BufReader::new(file);
 
     let header = read_header(file_size, &mut reader)?;
-    let mut tokens: Vec<pd::Tokens> = Vec::with_capacity(header.token_count as usize);
+    let mut packedTokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
     println!("Read header {:?}!", header);
 
     for _ in 0..header.token_count {
-        tokens.push(parse_token(read_u16(&mut reader)?));
+        packedTokens.push(read_u16(&mut reader)?);
     }
 
     let mut args: Vec<pd::Arg> = Vec::with_capacity(header.arg_count as usize);
@@ -60,6 +59,11 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
         strings.push(read_string(&mut reader)?);
     }
 
+    let tokens: Vec<pd::Tokens> = packedTokens
+        .iter()
+        .map(|&x| parse_token(x, &strings))
+        .collect();
+
     Ok(pd::PersistentDataRecord {
         _TokenOffset: 0,
         _ArgOffset: 0,
@@ -69,19 +73,20 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
     })
 }
 
-fn parse_token(stored_token: Token) -> Tokens {
+fn parse_token(stored_token: pd::Token, strings: &Vec<String>) -> pd::Tokens {
     let token_type = stored_token & 0x7;
     let token_value = stored_token >> 3;
+    let token_name = strings[token_value as usize].clone();
 
     match token_type {
-        0 => Tokens::BEGIN_TOKEN(token_value),
-        1 => Tokens::END_TOKEN(token_value),
-        2 => Tokens::SINT_TOKEN(token_value),
-        3 => Tokens::UINT_TOKEN(token_value),
-        4 => Tokens::FLOAT_TOKEN(token_value),
-        5 => Tokens::STRING_TOKEN(token_value),
-        6 => Tokens::FLAG_TOKEN(token_value),
-        7 => Tokens::EXTEND_TOKEN(token_value),
+        0 => pd::Tokens::BEGIN_TOKEN(token_name),
+        1 => pd::Tokens::END_TOKEN(token_name),
+        2 => pd::Tokens::SINT_TOKEN(token_name),
+        3 => pd::Tokens::UINT_TOKEN(token_name),
+        4 => pd::Tokens::FLOAT_TOKEN(token_name),
+        5 => pd::Tokens::STRING_TOKEN(token_name),
+        6 => pd::Tokens::FLAG_TOKEN(token_name),
+        7 => pd::Tokens::EXTEND_TOKEN(token_name),
         _ => panic!("Unknown token type"),
     }
 }

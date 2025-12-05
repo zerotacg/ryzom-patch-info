@@ -57,15 +57,21 @@ pub struct PersistentDataRecord {
 }
 
 impl PersistentDataRecord {
-    pub fn peek_token(&self) -> pd::Tokens {
-        self.tokens[self._TokenOffset]
+    pub fn peek_token(&self) -> &pd::Tokens {
+        &self.tokens[self._TokenOffset]
     }
 
     pub fn read_token(&mut self, name: &str) -> pd::TType {
         let token = self.pop_token(name);
+        if token.value() != name {
+            panic!("Expected property {} but found {}", name, token.value());
+        }
 
         if let pd::Tokens::EXTEND_TOKEN(_) = token {
             let token = self.pop_token(name);
+            if token.value() != name {
+                panic!("Expected property {} but found {}", name, token.value());
+            }
 
             return pd::token2Type(token, true);
         }
@@ -73,25 +79,13 @@ impl PersistentDataRecord {
         pd::token2Type(token, false)
     }
 
-    fn pop_token(&mut self, name: &str) -> pd::Tokens {
-        let expected_token = self.find_token(name);
-        let token = self.peek_token();
-
-        if token.value() != expected_token {
-            panic!(
-                "Expected property {} but found {}",
-                name,
-                self.find_name(token.value())
-            );
-        }
-
+    fn pop_token(&mut self, name: &str) -> &pd::Tokens {
         self._TokenOffset += 1;
-
-        token
+        self.peek_token()
     }
 
     fn has_property(&self, name: &str) -> bool {
-        self.find_token(name) == self.peek_token().value()
+        name == self.peek_token().value()
     }
 
     fn has_begin(&self, name: &str) -> bool {
@@ -100,14 +94,6 @@ impl PersistentDataRecord {
         } else {
             false
         }
-    }
-
-    fn find_token(&self, name: &str) -> Token {
-        self.strings.iter().position(|it| *it == *name).unwrap() as Token
-    }
-
-    fn find_name(&self, token: Token) -> &String {
-        &self.strings[token as usize]
     }
 
     fn read_struct_begin(&mut self, name: &str) {

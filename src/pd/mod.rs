@@ -6,20 +6,20 @@ use enum_ordinalize::Ordinalize;
 pub use header::*;
 pub use persistent_data::*;
 
-#[derive(Debug, PartialEq, Eq, Copy, Clone)]
+#[derive(Debug, PartialEq, Eq, Clone)]
 pub enum Tokens {
-    BEGIN_TOKEN(u16),
-    END_TOKEN(u16),
-    SINT_TOKEN(u16),
-    UINT_TOKEN(u16),
-    FLOAT_TOKEN(u16),
-    STRING_TOKEN(u16),
-    FLAG_TOKEN(u16),
-    EXTEND_TOKEN(u16),
+    BEGIN_TOKEN(String),
+    END_TOKEN(String),
+    SINT_TOKEN(String),
+    UINT_TOKEN(String),
+    FLOAT_TOKEN(String),
+    STRING_TOKEN(String),
+    FLAG_TOKEN(String),
+    EXTEND_TOKEN(String),
 }
 
 impl Tokens {
-    pub fn value(&self) -> u16 {
+    pub fn value(&self) -> &String {
         match self {
             Tokens::BEGIN_TOKEN(val)
             | Tokens::END_TOKEN(val)
@@ -28,7 +28,7 @@ impl Tokens {
             | Tokens::FLOAT_TOKEN(val)
             | Tokens::STRING_TOKEN(val)
             | Tokens::FLAG_TOKEN(val)
-            | Tokens::EXTEND_TOKEN(val) => *val,
+            | Tokens::EXTEND_TOKEN(val) => val,
         }
     }
 }
@@ -63,7 +63,7 @@ impl TType {
     }
 }
 
-pub fn token2Type(token: Tokens, extended: bool) -> TType {
+pub fn token2Type(token: &Tokens, extended: bool) -> TType {
     match token {
         Tokens::BEGIN_TOKEN(_) => TType::STRUCT_BEGIN,
         Tokens::END_TOKEN(_) => TType::STRUCT_END,
