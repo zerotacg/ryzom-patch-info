@@ -10,6 +10,12 @@ pub enum Error {
     NoMoreTokens,
     NoMoreArgs,
     ExpectedString,
+    ExpectedUintToken,
+    ExpectedSintToken,
+    ExpectedEnum,
+    ExpectedTokenWithName(String),
+    ExpectedBeginToken,
+    ExpectedEndToken,
 }
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -31,7 +37,17 @@ impl Display for Error {
         match self {
             Error::Message(msg) => formatter.write_str(msg),
             Error::InvalidFormat => formatter.write_str("invalid format"),
-            /* and so forth */
+            Error::NoMoreTokens => formatter.write_str("no more tokens"),
+            Error::NoMoreArgs => formatter.write_str("no more args"),
+            Error::ExpectedString => formatter.write_str("expected string"),
+            Error::ExpectedBeginToken => formatter.write_str("expected begin token"),
+            Error::ExpectedEndToken => formatter.write_str("expected end token"),
+            Error::ExpectedSintToken => formatter.write_str("expected sint token"),
+            Error::ExpectedUintToken => formatter.write_str("expected uint token"),
+            Error::ExpectedEnum => formatter.write_str("expected enum"),
+            Error::ExpectedTokenWithName(name) => {
+                write!(formatter, "expected token with name({})", name)
+            }
         }
     }
 }
