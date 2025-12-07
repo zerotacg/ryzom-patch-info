@@ -1,3 +1,4 @@
+use std::collections::VecDeque;
 use std::ops::{AddAssign, MulAssign, Neg};
 
 use crate::format::error::{Error, Result};
@@ -42,8 +43,8 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn has_token(&self) -> Result<bool> {
-        Ok(self.token_offset < self.input.tokens.len())
+    fn has_token(&self, name: &str) -> Result<bool> {
+        Ok(self.peek_token()?.value() == name)
     }
 
     fn pop_token(&mut self) -> Result<&'de pd::Tokens> {
@@ -272,7 +273,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_seq<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
@@ -302,12 +303,11 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         self.deserialize_seq(visitor)
     }
 
-    fn deserialize_map<V>(self, visitor: V) -> Result<V::Value>
+    fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        let value = visitor.visit_map(MapAccess::new(self))?;
-        Ok(value)
+        unimplemented!()
     }
 
     // Structs look just like maps in JSON.
@@ -319,13 +319,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     fn deserialize_struct<V>(
         self,
         _name: &'static str,
-        _fields: &'static [&'static str],
+        fields: &'static [&'static str],
         visitor: V,
     ) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        self.deserialize_map(visitor)
+        let value = visitor.visit_map(StructAccess::new(self, fields))?;
+        Ok(value)
     }
 
     fn deserialize_enum<V>(
@@ -415,25 +416,34 @@ impl<'de, 'a> SeqAccess<'de> for SameName<'a, 'de> {
     }
 }
 
-struct MapAccess<'a, 'de: 'a> {
+struct StructAccess<'a, 'de: 'a> {
     de: &'a mut Deserializer<'de>,
+    fields: VecDeque<&'static str>,
 }
 
-impl<'a, 'de> MapAccess<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>) -> Self {
-        MapAccess { de }
+impl<'a, 'de> StructAccess<'a, 'de> {
+    fn new(de: &'a mut Deserializer<'de>, fields: &'static [&'static str]) -> Self {
+        Self {
+            de,
+            fields: fields.iter().cloned().collect(),
+        }
     }
 }
 
-impl<'de, 'a> de::MapAccess<'de> for MapAccess<'a, 'de> {
+impl<'de, 'a> de::MapAccess<'de> for StructAccess<'a, 'de> {
     type Error = Error;
 
     fn next_key_seed<K>(&mut self, seed: K) -> Result<Option<K::Value>>
     where
         K: DeserializeSeed<'de>,
     {
-        if self.de.has_token()? {
-            seed.deserialize(&mut *self.de).map(Some)
+        let field = self.fields.pop_front();
+        if let Some(name) = field {
+            if self.de.has_token(name)? {
+                seed.deserialize(&mut *self.de).map(Some)
+            } else {
+                Ok(None)
+            }
         } else {
             Ok(None)
         }
