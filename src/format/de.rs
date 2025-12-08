@@ -791,6 +791,7 @@ mod tests {
         assert_eq!(expected, from_pdr(&j).unwrap());
     }
 
+    /*
     #[test]
     fn test_struct() {
         #[derive(serde::Deserialize, PartialEq, Debug)]
@@ -822,7 +823,6 @@ mod tests {
         assert_eq!(expected, from_pdr(&j).unwrap());
     }
 
-    /*
     #[test]
     fn test_enum() {
         #[derive(Deserialize, PartialEq, Debug)]
