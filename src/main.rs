@@ -3,6 +3,7 @@ mod format;
 mod patch;
 mod pd;
 
+use crate::error::ReadingError::InvalidFileFormat;
 use clap::Parser;
 use error::ReadingError;
 use std::fs::File;
@@ -24,7 +25,9 @@ fn main() -> Result<()> {
     let mut pdr = read_index_file(args.index_file)?;
 
     let patch = patch::CProductDescriptionForClient::from(&mut pdr);
-    println!("Parsed patch {:?}!", patch);
+    let json = serde_json::to_string(&patch).map_err(|e| InvalidFileFormat)?;
+
+    println!("{}", json);
 
     Ok(())
 }
@@ -39,7 +42,6 @@ fn read_index_file(filepath: String) -> Result<pd::PersistentDataRecord> {
 
     let header = read_header(file_size, &mut reader)?;
     let mut packed_tokens: Vec<pd::Token> = Vec::with_capacity(header.token_count as usize);
-    println!("Read header {:?}!", header);
 
     for _ in 0..header.token_count {
         packed_tokens.push(read_u16(&mut reader)?);

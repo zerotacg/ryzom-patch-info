@@ -1,6 +1,7 @@
 use crate::pd;
+use serde::Serialize;
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CProductDescriptionForClient {
     _Files: CBNPFileSet,          // read_struct
     _Categories: CBNPCategorySet, // read_struct
@@ -15,7 +16,7 @@ impl CProductDescriptionForClient {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CBNPFileSet {
     pub _Files: Vec<CBNPFile>, // read_struct_vec
 }
@@ -28,7 +29,7 @@ impl pd::Readable for CBNPFileSet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CBNPCategorySet {
     pub _Category: Vec<CBNPCategory>,
 }
@@ -41,7 +42,7 @@ impl pd::Readable for CBNPCategorySet {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CBNPCategory {
     pub _Name: String,
     pub _IsOptional: Option<bool>,
@@ -66,7 +67,7 @@ impl pd::Readable for CBNPCategory {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CBNPFile {
     pub _FileName: String,               // read_prop
     pub _Versions: Vec<CBNPFileVersion>, // read_struct_vec
@@ -81,7 +82,7 @@ impl pd::Readable for CBNPFile {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Serialize)]
 pub struct CBNPFileVersion {
     pub _VersionNumber: u32,
     pub _FileSize: u32,
