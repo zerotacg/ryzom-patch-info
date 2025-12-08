@@ -8,14 +8,14 @@ use serde::de::{
 };
 use serde::Deserialize;
 
-pub struct Deserializer<'de> {
-    input: &'de pd::PersistentDataRecord,
+pub struct Deserializer<'input> {
+    input: &'input pd::PersistentDataRecord,
     token_offset: usize,
     arg_offset: usize,
 }
 
-impl<'de> Deserializer<'de> {
-    pub fn from_pdr(input: &'de pd::PersistentDataRecord) -> Self {
+impl<'input> Deserializer<'input> {
+    pub fn from_pdr(input: &'input pd::PersistentDataRecord) -> Self {
         Deserializer {
             input,
             token_offset: 0,
@@ -24,18 +24,18 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-pub fn from_pdr<'a, T>(s: &'a pd::PersistentDataRecord) -> Result<T>
+pub fn from_pdr<'input, T>(input: &'input pd::PersistentDataRecord) -> Result<T>
 where
-    T: Deserialize<'a>,
+    T: Deserialize<'input>,
 {
-    let mut deserializer = Deserializer::from_pdr(s);
+    let mut deserializer = Deserializer::from_pdr(input);
     let t = T::deserialize(&mut deserializer)?;
 
     Ok(t)
 }
 
-impl<'de> Deserializer<'de> {
-    fn peek_token(&self) -> Result<&'de pd::Tokens> {
+impl<'input> Deserializer<'input> {
+    fn peek_token(&self) -> Result<&'input pd::Tokens> {
         if self.token_offset < self.input.tokens.len() {
             Ok(&self.input.tokens[self.token_offset])
         } else {
@@ -47,7 +47,7 @@ impl<'de> Deserializer<'de> {
         Ok(self.peek_token()?.value() == name)
     }
 
-    fn pop_token(&mut self) -> Result<&'de pd::Tokens> {
+    fn pop_token(&mut self) -> Result<&'input pd::Tokens> {
         let value = self.peek_token()?;
 
         self.token_offset += 1;
@@ -74,7 +74,7 @@ impl<'de> Deserializer<'de> {
         }
     }
 
-    fn parse_string(&mut self) -> Result<&'de str> {
+    fn parse_string(&mut self) -> Result<&'input str> {
         if let pd::Tokens::STRING_TOKEN(_) = *self.pop_token()? {
             let arg = self.pop_arg()?;
             Ok(&self.input.strings[arg as usize])
@@ -84,50 +84,54 @@ impl<'de> Deserializer<'de> {
     }
 }
 
-pub struct ChildDeserializer<'a, 'de: 'a> {
-    de: &'a mut Deserializer<'de>,
+pub struct ChildDeserializer<'child, 'input: 'child> {
+    de: &'child mut Deserializer<'input>,
     field: &'static str,
 }
 
-impl<'a, 'de> ChildDeserializer<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>, field: &'static str) -> Self {
+impl<'child, 'input> ChildDeserializer<'child, 'input> {
+    fn new(de: &'child mut Deserializer<'input>, field: &'static str) -> Self {
         Self { de, field }
     }
+
+    fn peek_token(&self) -> Result<&'input pd::Tokens> {
+        self.de.peek_token()
+    }
 }
-impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
+impl<'a, 'child, 'input> de::Deserializer<'input> for &'a mut ChildDeserializer<'child, 'input> {
     type Error = Error;
 
     fn deserialize_any<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_bool<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         visitor.visit_bool(self.de.parse_bool()?)
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         if let pd::Tokens::SINT_TOKEN(_) = *self.de.pop_token()? {
             let arg = self.de.pop_arg()?;
@@ -139,28 +143,28 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
 
     fn deserialize_i64<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         if let pd::Tokens::UINT_TOKEN(_) = *self.de.pop_token()? {
             visitor.visit_u32(self.de.pop_arg()?)
@@ -171,7 +175,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
 
     fn deserialize_u64<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
@@ -179,63 +183,63 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
     // Float parsing is stupidly hard.
     fn deserialize_f32<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_f64<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_char<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_str<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         visitor.visit_borrowed_str(self.de.parse_string()?)
     }
 
     fn deserialize_string<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         self.deserialize_str(visitor)
     }
 
     fn deserialize_bytes<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_byte_buf<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_option<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_unit<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
@@ -243,32 +247,30 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
     // Unit struct means a named value containing no data.
     fn deserialize_unit_struct<V>(self, _name: &'static str, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_newtype_struct<V>(self, _name: &'static str, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
-        /*
-        let value = visitor.visit_seq(SameName::new(self))?;
+        let value = visitor.visit_seq(SameField::new(self, self.field))?;
+
         Ok(value)
-         */
-        unimplemented!()
     }
 
     fn deserialize_tuple<V>(self, _len: usize, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         self.deserialize_seq(visitor)
     }
@@ -280,14 +282,14 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
         visitor: V,
     ) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         self.deserialize_seq(visitor)
     }
 
     fn deserialize_map<V>(self, _visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
@@ -305,7 +307,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
         visitor: V,
     ) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
@@ -317,16 +319,16 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
         visitor: V,
     ) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         unimplemented!()
     }
 
     fn deserialize_identifier<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
-        let token = self.peek_token()?;
+        let token = self.de.peek_token()?;
         let value = visitor.visit_borrowed_str(token.value())?;
         Ok(value)
     }
@@ -344,7 +346,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut ChildDeserializer<'a, 'de> {
     // self-describing.
     fn deserialize_ignored_any<V>(self, visitor: V) -> Result<V::Value>
     where
-        V: Visitor<'de>,
+        V: Visitor<'input>,
     {
         self.deserialize_any(visitor)
     }
@@ -364,21 +366,26 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_bool(self.parse_bool()?)
+        if let pd::Tokens::SINT_TOKEN(_) = *self.pop_token()? {
+            let arg = self.pop_arg()?;
+            visitor.visit_bool(arg != 0)
+        } else {
+            Err(Error::ExpectedSintToken)
+        }
     }
 
     fn deserialize_i8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_i8(self.parse_signed()?)
+        unimplemented!()
     }
 
     fn deserialize_i16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_i16(self.parse_signed()?)
+        unimplemented!()
     }
 
     fn deserialize_i32<V>(self, visitor: V) -> Result<V::Value>
@@ -397,21 +404,21 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_i64(self.parse_signed()?)
+        unimplemented!()
     }
 
     fn deserialize_u8<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_u8(self.parse_unsigned()?)
+        unimplemented!()
     }
 
     fn deserialize_u16<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        visitor.visit_u16(self.parse_unsigned()?)
+        unimplemented!()
     }
 
     fn deserialize_u32<V>(self, visitor: V) -> Result<V::Value>
@@ -429,7 +436,7 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     where
         V: Visitor<'de>,
     {
-        visitor.visit_u64(self.parse_unsigned()?)
+        unimplemented!()
     }
 
     // Float parsing is stupidly hard.
@@ -511,14 +518,10 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
         visitor.visit_newtype_struct(self)
     }
 
-    fn deserialize_seq<V>(self, _visitor: V) -> Result<V::Value>
+    fn deserialize_seq<V>(self, visitor: V) -> Result<V::Value>
     where
         V: Visitor<'de>,
     {
-        /*
-        let value = visitor.visit_seq(SameName::new(self))?;
-        Ok(value)
-         */
         unimplemented!()
     }
 
@@ -625,28 +628,25 @@ impl<'de, 'a> de::Deserializer<'de> for &'a mut Deserializer<'de> {
     }
 }
 
-// In order to handle commas correctly when deserializing a JSON array or map,
-// we need to track whether we are on the first element or past the first
-// element.
-struct SameName<'a, 'de: 'a> {
-    de: &'a mut Deserializer<'de>,
-    name: &'a str,
+struct SameField<'a, 'child, 'de: 'a> {
+    de: &'a mut ChildDeserializer<'child, 'de>,
+    field: &'static str,
 }
 
-impl<'a, 'de> SameName<'a, 'de> {
-    fn new(de: &'a mut Deserializer<'de>, name: &'a str) -> Self {
-        SameName { de, name }
+impl<'a, 'child, 'de> SameField<'a, 'child, 'de> {
+    fn new(de: &'a mut ChildDeserializer<'child, 'de>, field: &'static str) -> Self {
+        Self { de, field }
     }
 }
 
-impl<'de, 'a> SeqAccess<'de> for SameName<'a, 'de> {
+impl<'a, 'child, 'de> SeqAccess<'de> for SameField<'a, 'child, 'de> {
     type Error = Error;
 
     fn next_element_seed<T>(&mut self, seed: T) -> Result<Option<T::Value>>
     where
         T: DeserializeSeed<'de>,
     {
-        if self.de.peek_token()?.value() == self.name {
+        if self.de.peek_token()?.value() != self.field {
             Ok(None)
         } else {
             seed.deserialize(&mut *self.de).map(Some)
