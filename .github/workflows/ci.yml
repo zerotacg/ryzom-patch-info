@@ -8,18 +8,56 @@ env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build_and_test:
+  strings:
+    runs-on: ubuntu-latest
+    outputs:
+      build-version: ${{ steps.strings.outputs.build-version }}
+      image-version: ${{ steps.strings.outputs.image-version }}
+      image-group: ${{ steps.strings.outputs.image-group }}
+    steps:
+      - name: Set reusable strings
+        id: strings
+        shell: bash
+        run: |
+          COMMIT_HASH=${{ github.sha }}
+          VERSION=$(echo "${{ github.ref }}" | sed -e 's,.*/\(.*\),\1,')
+          [[ "${{ github.ref }}" == "refs/tags/"* ]] && VERSION=$(echo $VERSION | sed -e 's/^v//')
+          [ "$VERSION" == "${{ github.event.repository.default_branch }}" ] && VERSION=latest
+          IMAGE_GROUP=ghcr.io/${{ github.repository_owner }}
+          IMAGE_GROUP=$(echo $IMAGE_GROUP | tr '[A-Z]' '[a-z]')
+          echo VERSION=$VERSION
+          echo IMAGE_GROUP=$IMAGE_GROUP
+          echo "build-version=${VERSION}+sha.${COMMIT_HASH:0:8}" >> "$GITHUB_OUTPUT"
+          echo "image-version=${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "image-group=${IMAGE_GROUP}" >> "$GITHUB_OUTPUT"
+
+  build:
     name: Rust project - latest
+    needs: [ strings ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
         toolchain:
           - stable
-          - beta
-          - nightly
     steps:
       - uses: actions/checkout@v4
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose
       - run: cargo test --verbose
 
+  publish:
+    needs: [ strings, build ]
+    runs-on: ubuntu-latest
+    permissions:
+      packages: write
+      contents: read
+    if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch ) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build & Push Docker image
+        run: |
+          echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
+          IMAGE_TAG="${{ inputs.image-group }}/ryzom-patch-info:${{ inputs.image-version }}"
+          docker build . --file Dockerfile --tag "${IMAGE_TAG}"
+          docker push "${IMAGE_TAG}"
