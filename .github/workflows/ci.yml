@@ -33,7 +33,6 @@ jobs:
 
   build:
     name: Rust project - latest
-    needs: [ strings ]
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -58,6 +57,6 @@ jobs:
       - name: Build & Push Docker image
         run: |
           echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u $ --password-stdin
-          IMAGE_TAG="${{ inputs.image-group }}/ryzom-patch-info:${{ inputs.image-version }}"
+          IMAGE_TAG="${{ needs.strings.outputs.image-group }}/ryzom-patch-info:${{ needs.strings.outputs.image-version }}"
           docker build . --file Dockerfile --tag "${IMAGE_TAG}"
           docker push "${IMAGE_TAG}"
