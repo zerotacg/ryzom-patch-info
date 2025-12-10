@@ -15,5 +15,6 @@ RUN groupadd -g 1001 appgroup && \
 
 COPY --from=build --chown=appuser:appgroup /app/target/release/ryzom-patch-info /usr/local/bin/ryzom-patch-info
 USER appuser
+WORKDIR /app
 
 ENTRYPOINT ["/usr/local/bin/ryzom-patch-info"]
