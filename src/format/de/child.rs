@@ -246,7 +246,7 @@ impl<'a, 'child, 'input> serde::Deserializer<'input> for &'a mut ChildDeserializ
         self,
         _name: &'static str,
         _variants: &'static [&'static str],
-        visitor: V,
+        _visitor: V,
     ) -> error::Result<V::Value>
     where
         V: Visitor<'input>,

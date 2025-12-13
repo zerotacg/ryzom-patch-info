@@ -18,8 +18,9 @@ where
 
 ////////////////////////////////////////////////////////////////////////////////
 mod tests {
-    use super::*;
-    use crate::pd::{PersistentDataRecord, Tokens};
+    use super::from_pdr;
+    use crate::pd::PersistentDataRecord;
+    use crate::pd::Tokens;
     #[test]
     fn test_simple_values() {
         #[derive(serde::Deserialize, PartialEq, Debug)]

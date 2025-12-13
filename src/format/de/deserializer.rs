@@ -2,7 +2,8 @@ use crate::format::error;
 use crate::format::error::Error;
 use crate::pd;
 use serde::de;
-use serde::de::{DeserializeSeed, IntoDeserializer, Visitor};
+use serde::de::DeserializeSeed;
+use serde::de::Visitor;
 use std::collections::VecDeque;
 
 pub struct Deserializer<'input> {
