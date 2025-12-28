@@ -25,7 +25,7 @@ fn main() -> Result<()> {
     let mut pdr = read_index_file(args.index_file)?;
 
     let patch = patch::CProductDescriptionForClient::from(&mut pdr);
-    let json = serde_json::to_string(&patch).map_err(|e| InvalidFileFormat)?;
+    let json = serde_json::to_string_pretty(&patch).map_err(|_| InvalidFileFormat)?;
 
     println!("{}", json);
 
