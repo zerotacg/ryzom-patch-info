@@ -39,7 +39,7 @@ jobs:
         toolchain:
           - stable
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
       - run: cargo build --verbose
       - run: cargo test --verbose
@@ -52,7 +52,7 @@ jobs:
       contents: read
     if: ${{ github.ref == format('refs/heads/{0}', github.event.repository.default_branch ) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - name: Build & Push Docker image
         run: |
